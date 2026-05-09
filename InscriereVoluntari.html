@@ -1,0 +1,152 @@
+﻿<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <title>Înscriere Voluntari</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 50px;
+            background: #f4f7f6;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+            button:hover {
+                background-color: #0056b3;
+            }
+
+        #status {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Asociația de Voluntari</h2>
+        <p>Completează datele pentru înscriere:</p>
+        <input type="text" id="nume" placeholder="Nume Complet">
+        <input type="email" id="email" placeholder="Email Student">
+        <select id="departament">
+            <option value="EDU">Educational</option>
+            <option value="MRK">Marketing & IT</option>
+            <option value="PROI">Proiecte</option>
+            <option value="FR">Relatii Externe</option>
+            <option value="SOC">Social</option>
+        </select>
+        <button id="btnTrimite" disabled>Așteaptă încărcarea...</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const CLIENT_ID = '67367551692-ep7bs5v78qhaluimesfvpbcv7spgqqhf.apps.googleusercontent.com';
+        const SPREADSHEET_ID = '1wU8O8RdiXqCC6mekS8LMKpem5Dq1LWyIRNw09wLWKc4';
+        const IFTTT_URL = 'https://maker.ifttt.com/trigger/voluntar_nou/with/key/oizax3dePOv_tRQEpc6KMhSi6q3V7afK_2-WdGL5oNm';
+
+        let tokenClient;
+        let accessToken = null;
+
+        function gisLoaded() {
+            console.log("Încercăm inițializarea Google Auth...");
+            try {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: 'https://www.googleapis.com/auth/spreadsheets',
+                    callback: (response) => {
+                        console.log("Răspuns Google Auth:", response);
+                        if (response.error !== undefined) {
+                            document.getElementById('status').innerText = "Eroare Auth: " + response.error;
+                            throw (response);
+                        }
+                        accessToken = response.access_token;
+                        console.log("Token obținut cu succes!");
+                        saveData();
+                    },
+                });
+
+                const btn = document.getElementById('btnTrimite');
+                btn.disabled = false;
+                btn.innerText = "Trimite Înscrierea";
+                console.log("Sistemul a fost activat.");
+            } catch (err) {
+                console.error("Eroare critică la inițializare:", err);
+            }
+        }
+
+        function handleAuthClick() {
+            if (!tokenClient) {
+                console.error("Eroare: Google Auth nu s-a inițializat încă!");
+                return;
+            }
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
+
+        async function saveData() {
+            const nume = document.getElementById('nume').value;
+            const email = document.getElementById('email').value;
+            const dep = document.getElementById('departament').value;
+            const status = document.getElementById('status');
+
+            status.innerText = "Se procesează...";
+
+            try {
+
+                const sheetsResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/A1:append?valueInputOption=USER_ENTERED`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values: [[nume, email, dep, new Date().toLocaleString()]] })
+                });
+
+                if (!sheetsResponse.ok) throw new Error("Eroare la Google Sheets");
+
+                
+                await fetch(`https://maker.ifttt.com/trigger/voluntar_nou/with/key/oizax3dePOv_tRQEpc6KMhSi6q3V7afK_2-WdGL5oNm?value1=${encodeURIComponent(nume)}&value2=${encodeURIComponent(email)}&value3=${encodeURIComponent(dep)}`, {
+                    method: 'POST',
+                    mode: 'no-cors'
+                });
+
+                status.innerHTML = "<b style='color:green;'>Succes! Date salvate în Sheets și notificare trimisă prin IFTTT.</b>";
+                document.getElementById('nume').value = "";
+                document.getElementById('email').value = "";
+            } catch (err) {
+                status.innerHTML = "<b style='color:red;'>Eroare: " + err.message + "</b>";
+            }
+        }
+    </script>
+
+    <script src="https://accounts.google.com/gsi/client" async defer onload="gisLoaded()"></script>
+
+    <script>
+        document.getElementById('btnTrimite').onclick = handleAuthClick;
+    </script>
+</body>
+</html>
