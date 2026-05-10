@@ -8,6 +8,8 @@ Grupa 1147
 
 https://youtu.be/7byryWNfLlY
 
+https://github.com/DianaStancu12/Proiect-Cloud-computing.git
+
 1. Introducere                                                                                                                                                                                                       Aplicația
 Aplicația „Înscriere Voluntari” este o soluție web integrată, menită să automatizeze procesul de recrutare pentru asociația studențească USASE. Utilizatorul completează un formular simplu, iar datele sunt procesate și stocate automat în cloud, declanșând simultan o notificare de confirmare prin intermediul adresei de gmail instituțională.
 
